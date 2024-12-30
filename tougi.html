@@ -436,6 +436,54 @@
                 this.elementLevel = elementLevel;
                 this.compatibleRange = compatibleRange;
 
+                this.badStatus = {
+                    curse: { remainingTurns: 0, recovery: false }, // 呪いの状態
+                    poisonA: { remainingTurns: 0, recovery: false, damage: { percentage: 0.01, minDamage: 50, maxDamage: 200 }, bsname: '毒' }, // 毒の状態
+                    poisonB: { remainingTurns: 0, recovery: false, damage: { percentage: 0.02, minDamage: 100, maxDamage: 400 }, bsname: '猛毒' }, // 猛毒の状態
+                    poisonC: { remainingTurns: 0, recovery: false, damage: { percentage: 0.03, minDamage: 150, maxDamage: 600 }, bsname: '致死毒' }, // 致死毒の状態
+                    fireA: { remainingTurns: 0, recovery: false, damage: { percentage: 0.01, minDamage: 50, maxDamage: 200 }, bsname: '火炎' },  //火炎の状態
+                    fireB: { remainingTurns: 0, recovery: false, damage: { percentage: 0.02, minDamage: 100, maxDamage: 400 }, bsname: '業炎' }, //業炎の状態
+                    fireC: { remainingTurns: 0, recovery: false, damage: { percentage: 0.03, minDamage: 150, maxDamage: 600 }, bsname: '炎獄' }, //獄炎の状態
+                    friezeA: { remainingTurns: 0, recovery: false }, //凍結の状態
+                    friezeB: { remainingTurns: 0, recovery: false }, //氷結の状態
+                    friezeC: { remainingTurns: 0, recovery: false }, //氷漬の状態
+                    shockA: { remainingTurns: 0, recovery: false }, //痺れの状態
+                    shockB: { remainingTurns: 0, recovery: false }, //ショックの状態
+                    shockC: { remainingTurns: 0, recovery: false }, //感電の状態
+                    disorderA: { remainingTurns: 0, recovery: false }, //乱れの状態
+                    disorderB: { remainingTurns: 0, recovery: false }, //崩れの状態
+                    disorderC: { remainingTurns: 0, recovery: false }, //体勢不利の状態
+                    bleedingA: { remainingTurns: 0, recovery: false, damage: { percentage: 0, minDamage: 100, maxDamage: 100 }, bsname: '出血' },
+                    bleedingB: { remainingTurns: 0, recovery: false, damage: { percentage: 0, minDamage: 200, maxDamage: 200 }, bsname: '流血' },
+                    bleedingC: { remainingTurns: 0, recovery: false, damage: { percentage: 0, minDamage: 300, maxDamage: 300 }, bsname: '失血' },
+                    suffocationA: { remainingTurns: 0, recovery: false }, //窒息の状態
+                    suffocationB: { remainingTurns: 0, recovery: false }, //苦鳴の状態
+                    suffocationC: { remainingTurns: 0, recovery: false }, //懊悩の状態
+                    quagmireA: { remainingTurns: 0, recovery: false }, //足止の状態
+                    quagmireB: { remainingTurns: 0, recovery: false }, //泥沼の状態
+                    quagmireC: { remainingTurns: 0, recovery: false }, //停滞の状態
+                    slumpA: { remainingTurns: 0, recovery: false }, //不調の状態
+                    slumpB: { remainingTurns: 0, recovery: false }, //不遇の状態
+                    slumpC: { remainingTurns: 0, recovery: false }, //不発の状態
+                    ominousA: { remainingTurns: 0, recovery: false }, //不吉の状態
+                    ominousB: { remainingTurns: 0, recovery: false }, //不運の状態
+                    ominousC: { remainingTurns: 0, recovery: false }, //魔凶の状態
+                    paralysisA: { remainingTurns: 0, recovery: false }, //麻痺の状態
+                    paralysisB: { remainingTurns: 0, recovery: false }, //呪縛の状態
+                    paralysisC: { remainingTurns: 0, recovery: false }, //石化の状態
+                    panicA: { remainingTurns: 0, recovery: false }, //混乱の状態
+                    panicB: { remainingTurns: 0, recovery: false }, //凶器の状態
+                    panicC: { remainingTurns: 0, recovery: false }, //魅了の状態
+                    deadly: { remainingTurns: 0, recovery: false }, //致命の状態
+                    sealed: { remainingTurns: 0, recovery: false }, //封印の状態
+                    darkness: { remainingTurns: 0, recovery: false }, //暗闇の状態
+                    ecstasy: { remainingTurns: 0, recovery: false }, //恍惚の状態
+                    anger: { remainingTurns: 0, recovery: false }, //怒りの状態
+                    pressure: { remainingTurns: 0, recovery: false }, //重圧の状態
+                    impossible: { remainingTurns: 0, recovery: false }, //無策の状態
+                    // 他のBS（例えば睡眠など）もここに追加可能
+                };
+
                 this.alive = true;
                 this.passed = false;
                 this.actionPoints = 0;
@@ -447,6 +495,68 @@
                 this.nextAction = null;
                 this.rangeHitFix;
             }
+
+            // BS処理を行うメソッド
+            processBadStatus() {
+                // 呪いがかかっている場合、呪いだけ回復し他のBSはスキップ
+                if (this.badStatus.curse.remainingTurns > 0) {
+                    this.handleCurse();
+                } else {
+                    // 呪い以外のBSを一元管理
+                    if (Object.values(this.badStatus).some(status => status.remainingTurns > 0)) {
+                        this.allbas();
+                    }
+                }
+            }
+
+            // 呪い以外の自然回復処理
+            allbas() {
+
+                    for (let statusKey in this.badStatus) {
+                        let status = this.badStatus[statusKey];
+
+                        // 残りターンが0より大きい場合にダメージ処理
+                        if (status.remainingTurns > 0) {
+                            let damage = Math.max(status.damage.minDamage, Math.min(status.damage.maxDamage, Math.floor(this.hp * status.damage.percentage)));
+                            this.hp -= damage;
+                            this.hp = Math.max(0, this.hp); // HPが0以下にならないように
+
+                            status.remainingTurns--; // 残りターンを減らす
+
+                            // ログに出力
+                            log(`${this.name}は${status.bsname}により${damage}ダメージを受けた！（残りターン: ${status.remainingTurns}）`);
+
+                            // 残りターンが0になった場合、回復フラグを立てる
+                            if (status.remainingTurns === 0) {
+                                status.recovery = true;
+                                log(`${this.name}の${status.bsname}が治癒しました！`);
+                            }
+                        }
+                    }
+                
+                
+                if (this.hp <= 0) {
+                    let dramaChance = Math.random() * 100;
+                    // 数字が上回った=以上と解釈。>の可能性もあり
+                    if (dramaChance >= (100 - this.drama) && dramaChance > this.fumble) {
+                        this.hp = 1;
+                        if (this.dramaEnhanceCount < 10) {
+                            this.critical += 1;
+                            this.speed += 20;
+                            this.dramaEnhanceCount += 1;
+                            log(`${this.name}はドラマ補正でHP1で踏みとどまり、クリティカルと速度が増加しました！`);
+                        } else {
+                            log(`${this.name}はドラマ補正でHP1で踏みとどまりました！`);
+                        }
+                    } else {
+                        this.hp = 0;
+                        this.alive = false;
+                        log(`${this.name}は倒れました！`);
+                        
+                    }
+                }
+            }
+            
 
             // ダメージを受けるメソッド
             takeDamage(damage, trueDamage, judgeHitDegree, defenseFumble, element, elementLevel) {
@@ -977,6 +1087,20 @@
             battleLog.scrollTop = battleLog.scrollHeight;
         }
 
+        function applyPoisonManually(character) {
+        // 毒の状態を直接設定
+        character.badStatus.poisonA.remainingTurns = 4;  // 例えば、毒を4ターンに設定
+        character.badStatus.poisonA.recovery = false;  // 毒の自然回復を初期化
+        log(`${character.name}に毒が付与されました！`);
+        }
+        
+        function applyPoison2Manually(character) {
+        // 猛毒の状態を直接設定
+        character.badStatus.poisonB.remainingTurns = 4;
+        character.badStatus.poisonB.recovery = false;
+        log(`${character.name}に猛毒が付与されました！`);
+        }
+
         function startBattle() {
             player1 = new Character(
                 document.getElementById('player1_name').value,
@@ -1046,7 +1170,11 @@
                 log(`\nターン ${turn}:`);
                 player1.passed = false;
                 player2.passed = false;
-
+                
+                if(turn == 1){
+                    applyPoisonManually(player1);
+                    applyPoison2Manually(player2);
+                }
                 // BS判定フェーズ
                 // ダメージバッドステータスのダメージ処理
                 // →バッドステータスの自然回復判定
@@ -1055,6 +1183,12 @@
                 // 速度決定フェーズ
                 player1.rollInitiative();
                 player2.rollInitiative();
+
+                player1.processBadStatus();
+                player2.processBadStatus();
+                if (!player1.isAlive() || !player2.isAlive()) {
+                        break turnLoop;
+                    }
 
                 // 行動フェーズ
                 let actPlayer, targetPlayer;
